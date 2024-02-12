@@ -10,8 +10,9 @@ configfile: "t2t_repeat_mask.json"
 if "asm" not in config and "assembly" in config:
     config["asm"] = config["assembly"]
 
-assembly="assembly.orig.fasta"
-asmFai="assembly.orig.fasta.fai"
+assembly=config["asm"]
+#asmFai="assembly.orig.fasta.fai"
+asmFai=assembly + ".fai"
 #asmFai=config["asm"] + ".fai"
 asmFaiFile=open(asmFai)
 faiLines=asmFaiFile.readlines()
@@ -70,32 +71,41 @@ rule all:
         mask="assembly.repeat_masked.fasta",
         maskedGenomeOut="assembly.repeat_masked.fasta.out"        
 
+#   "grid_small": "sbatch -c 1 --mem=8G --time=4:00:00 --partition=qcb  --account=mchaisso_100", 
+
 
 rule IndexGenome:
     input:
-        asm="assembly.orig.fasta"
+        asm=assembly
     output:
-        fai="assembly.orig.fasta.fai"
-    params:
-        grid_opts=config["grid_small"]
+        fai=asmFai
+    resources:
+        mem=8,
+        threads=1,
+        hrs=4
     shell:"""
 samtools faidx {input.asm}
 """
 
 rule SplitGenome:
     input:
-        asm="assembly.orig.fasta",
-        fai="assembly.orig.fasta.fai",
+        asm=assembly,
+        fai=asmFai
     output:
         split=expand("split/to_mask.{region}.fasta", region=splitRegions)
+#    "grid_medium": "sbatch -c 8 --mem=16G --time=24:00:00 --partition=qcb --account=mchaisso_100", 
+    resources:
+        mem=16,
+        threads=1,
+        hrs=24
     params:
-        grid_opts=config["grid_medium"],
+		#        grid_opts=config["grid_medium"],
         sd=SD
     resources:
         load=1
     shell:"""
 mkdir -p split
-{params.sd}/DivideFasta.py {input.asm} {SplitSize} {SplitOverlap} split/to_mask
+module load python3/3.9.3_anaconda2021.11_mamba && {params.sd}/DivideFasta.py {input.asm} {SplitSize} {SplitOverlap} split/to_mask
 """
 
 rule MaskContig:
@@ -106,8 +116,13 @@ rule MaskContig:
         maskOut="masked/to_mask.{index}.fasta.out"
     conda:
         "rmsk"
+    #          "grid_repeatmasker" : "sbatch -c 4 --mem=8G --time=24:00:00 --partition=qcb --account=mchaisso_100",
+    resources:
+        mem=8,
+        threads=1,
+        hrs=24
     params:
-        grid_opts=config["grid_repeatmasker"],
+        #grid_opts=config["grid_repeatmasker"],
         repeatLibrary=config["repeat_library"],
         sd=SD        
     shell:"""
@@ -115,7 +130,7 @@ mkdir -p masked
 TEMP="$TMPDIR/$$_$RANDOM/"
 mkdir -p $TEMP
 cp \"{input.contig}\" \"$TEMP/to_mask.{wildcards.index}.fasta\" && \
-pushd $TEMP &&  \
+pushd $TEMP && 
 RepeatMasker -species "Homo sapiens" -pa 8  -s -xsmall \"to_mask.{wildcards.index}.fasta\" && \
 popd && \
 if [ ! -e $TEMP/to_mask.\"{wildcards.index}\".fasta.masked ]; then
@@ -148,7 +163,7 @@ then
   # 
   # Copy input file to temp dir that should have fast IO
   #
-  {params.sd}/hardmask {input.mask} $TEMP/to_mask.{wildcards.index}.fasta && \
+  export LD_LIBRARY_PATH=/panfs/jay/groups/7/hsiehph/gordo893/packages/htslib && {params.sd}/hardmask {input.mask} $TEMP/to_mask.{wildcards.index}.fasta && \
   pushd $TEMP &&  \
   RepeatMasker -nolow -lib {params.sd}/T2TLib/final_consensi_gap_nohsat_teucer.embl.txt.fasta  -pa 8 -s -xsmall \"to_mask.{wildcards.index}.fasta\" && \
   popd && \
@@ -174,13 +189,21 @@ rule TRFMaskContig:
         trf="trf/to_mask.{index}.fasta.trf"
     conda:
         "base"
+	#   "grid_small": "sbatch -c 1 --mem=8G --time=4:00:00 --partition=qcb  --account=mchaisso_100", 
+    resources:
+        mem = 8,		
+        threads = 1,
+        hrs = 4
     params:
-        grid_opts=config["grid_small"],
+#        grid_opts=config["grid_small"],
         sd=SD
     shell:"""
 mkdir -p trf    
-{params.sd}/trf-mod -p 500 -l 20000 {input.orig} > {output.trf}.bed
-{params.sd}/bemask {input.orig} {output.trf}.bed {output.trf}
+/panfs/jay/groups/7/hsiehph/gordo893/packages/trf-mod/from_Mark/TRF-mod/trf-mod -p 500 -l 20000 {input.orig} > {output.trf}.bed
+# fix for /panfs/jay/groups/7/hsiehph/gordo893/pipelines/mark_chaisson_repeatmasker/RepeatMasking/bemask:     error while loading shared libraries: libhts.so.3: cannot open shared object file: No such file or directory
+# fix for /usr/bin/bash: line 3: LD_LIBRARY_PATH: unbound variable
+# and ./bemask: /lib64/libstdc++.so.6: version `GLIBCXX_3.4.21' not found (required by ./bemask)
+module load gcc/7.2.0 && export LD_LIBRARY_PATH=/panfs/jay/groups/7/hsiehph/gordo893/packages/htslib:$LD_LIBRARY_PATH && {params.sd}/bemask {input.orig} {output.trf}.bed {output.trf}
 """
 
 rule MergeMaskerRuns:
@@ -193,8 +216,13 @@ rule MergeMaskerRuns:
     output:
         comb="comb/to_mask.{index}.fasta.masked",
         combOut="comb/to_mask.{index}.fasta.out",
+	#   "grid_small": "sbatch -c 1 --mem=8G --time=4:00:00 --partition=qcb  --account=mchaisso_100", 
+    resources:
+        mem = 8,		
+        threads = 1,
+        hrs = 4
     params:
-        grid_opts=config["grid_small"],
+	#        grid_opts=config["grid_small"],
         sd=SD
     shell:"""
 {params.sd}/comask {output.comb} {input.humLib} {input.t2tLib} {input.trfMasked}
@@ -208,11 +236,16 @@ rule CombineMaskedFasta:
         maskedFasta=lambda wildcards:  expand("comb/to_mask.{{name}}_{coords}.fasta.masked", coords=splitByContig[wildcards.name])
     output:
         combMaskedFasta="comb/masked.{name}.fasta"
+	#   "grid_medium": "sbatch -c 8 --mem=16G --time=24:00:00 --partition=qcb --account=mchaisso_100", 
+    resources:
+        mem = 16,
+        threads = 1,
+        hrs = 24
     params:
         sd=SD,
-        grid_opts=config["grid_medium"]
+	#        grid_opts=config["grid_medium"]
     shell:"""
-{params.sd}/CombineFasta.py {output.combMaskedFasta} {wildcards.name} {SplitOverlap} {input.maskedFasta}
+module load python3/3.9.3_anaconda2021.11_mamba && {params.sd}/CombineFasta.py {output.combMaskedFasta} {wildcards.name} {SplitOverlap} {input.maskedFasta}
 """    
         
 rule WriteOutNames:
@@ -220,8 +253,13 @@ rule WriteOutNames:
         maskedContigsOut=expand("comb/to_mask.{index}.fasta.out", index=splitRegions),
     output:
         contigOutFOFN="comb/comb.out.fofn",
-    params:
-        grid_opts=config["grid_small"]
+	#   "grid_small": "sbatch -c 1 --mem=8G --time=4:00:00 --partition=qcb  --account=mchaisso_100", 
+    resources:
+        mem = 8,		
+        threads = 1,
+        hrs = 4
+#    params:
+#        grid_opts=config["grid_small"]
     run:
         outFile=open(output.contigOutFOFN,'w')
         for i in input.maskedContigsOut :
@@ -235,8 +273,13 @@ rule CatMaskedFasta:
         maskedContigs=expand("comb/masked.{name}.fasta", name=contigNames)
     output:
         maskedGenome="assembly.repeat_masked.fasta",
-    params:
-        grid_opts=config["grid_small"]
+	#   "grid_small": "sbatch -c 1 --mem=8G --time=4:00:00 --partition=qcb  --account=mchaisso_100", 
+    resources:
+        mem = 8,		
+        threads = 1,
+        hrs = 4
+#    params:
+#        grid_opts=config["grid_small"]
     shell:"""
 cat {input.maskedContigs} > {output.maskedGenome}
 """
@@ -247,8 +290,12 @@ rule CombineMask:
         contigOutFOFN="comb/comb.out.fofn"
     output:
         maskedGenomeOut="assembly.repeat_masked.fasta.out"        
+    resources:
+        mem = 8,		
+        threads = 1,
+        hrs = 4
     params:
-        grid_opts=config["grid_small"],
+#        grid_opts=config["grid_small"],
         sd=SD
     shell:"""
 {params.sd}/AppendOutFile.py {output.maskedGenomeOut} {params.sd}/repeat_masker.out.header  {input.contigOutFOFN}
