@@ -1,0 +1,10 @@
+.snakemake/
+bemask
+comask
+hardmask
+mask2bed
+masked/
+nl
+split/
+t2t/
+trf/
