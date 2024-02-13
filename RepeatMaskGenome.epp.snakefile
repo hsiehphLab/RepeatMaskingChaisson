@@ -150,8 +150,11 @@ rule SpecialMaskContig:
         ttOut="t2t/to_mask.{index}.fasta.out",
     conda:
         "rmsk"
+    resources:
+        mem = 8,		
+        threads = 1,
+        hrs = 4
     params:
-        grid_opts=config["grid_repeatmasker"],
         repeatLibrary=config["t2t_repeat_library"],
         sd=SD
     shell:"""
@@ -199,7 +202,7 @@ rule TRFMaskContig:
         sd=SD
     shell:"""
 mkdir -p trf    
-/panfs/jay/groups/7/hsiehph/gordo893/packages/trf-mod/from_Mark/TRF-mod/trf-mod -p 500 -l 20000 {input.orig} > {output.trf}.bed
+/panfs/jay/groups/7/hsiehph/shared/software/packages/trf-mod/from_Mark/TRF-mod/trf-mod -p 500 -l 20000 {input.orig} > {output.trf}.bed
 # fix for /panfs/jay/groups/7/hsiehph/gordo893/pipelines/mark_chaisson_repeatmasker/RepeatMasking/bemask:     error while loading shared libraries: libhts.so.3: cannot open shared object file: No such file or directory
 # fix for /usr/bin/bash: line 3: LD_LIBRARY_PATH: unbound variable
 # and ./bemask: /lib64/libstdc++.so.6: version `GLIBCXX_3.4.21' not found (required by ./bemask)
@@ -225,7 +228,7 @@ rule MergeMaskerRuns:
 	#        grid_opts=config["grid_small"],
         sd=SD
     shell:"""
-{params.sd}/comask {output.comb} {input.humLib} {input.t2tLib} {input.trfMasked}
+export LD_LIBRARY_PATH=/home/hsiehph/shared/software/packages/htslib && {params.sd}/comask {output.comb} {input.humLib} {input.t2tLib} {input.trfMasked}
 echo {input.humLibOut} > comb/to_mask.{wildcards.index}.names
 echo {input.t2tLibOut} >> comb/to_mask.{wildcards.index}.names
 {params.sd}/AppendOutFile.py {output.combOut} {params.sd}/repeat_masker.out.header comb/to_mask.{wildcards.index}.names
