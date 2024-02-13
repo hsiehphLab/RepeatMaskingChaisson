@@ -1,5 +1,12 @@
 #!/usr/bin/bash -l
 
+#SBATCH --time=48:00:00
+#SBATCH --mem=10g                                                                                  
+#SBATCH --cpus-per-task=1
+
+
+
+
 # needed for Athef because it didn't automatically source ~/.bashrc so couldn't conda activate anything
 source ~/.bashrc
 
