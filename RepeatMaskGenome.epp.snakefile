@@ -5,7 +5,7 @@ import os.path
 
 
 # Config
-configfile: "t2t_repeat_mask.json"
+configfile: "repeatmask.json"
 
 if "asm" not in config and "assembly" in config:
     config["asm"] = config["assembly"]

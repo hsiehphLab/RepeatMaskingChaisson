@@ -1,0 +1,5 @@
+{
+   "asm" : "test_assembly/assembly.fa",
+   "repeat_library": "-species 'Homo sapiens'",
+   "t2t_repeat_library" : "T2TLib/final_consensi_gap_nohsat_teucer.embl.txt.fasta"
+}
