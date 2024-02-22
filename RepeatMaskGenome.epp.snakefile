@@ -7,15 +7,21 @@ import os.path
 # Config
 configfile: "repeatmask.json"
 
-if "asm" not in config and "assembly" in config:
-    config["asm"] = config["assembly"]
-
-assembly=config["asm"]
-#asmFai="assembly.orig.fasta.fai"
+assembly=config["input"]
 asmFai=assembly + ".fai"
-#asmFai=config["asm"] + ".fai"
+
+if not os.path.exists( asmFai ):
+	szCommand = "module load samtools/1.9 && samtools faidx " + assembly
+	print( "about to execute: " + szCommand )
+	subprocess.call( szCommand, shell = True )
+
+
 asmFaiFile=open(asmFai)
 faiLines=asmFaiFile.readlines()
+
+szMaskedAssembly=config["output"]
+szCompressedMaskedAssembly = szMaskedAssembly + ".gz"
+szLocationsOfRepeats=config["output"] + ".out"
 
 contigs=[l.split()[0] for l in faiLines]
 lengths=[int(l.split()[1]) for l in faiLines]
@@ -62,16 +68,20 @@ sys.stderr.write("Processing {} regions\n".format(str(len(splitRegions))))
 
 
 
-rule all:
-    input:
-        split=expand("split/to_mask.{region}.fasta",region=splitRegions),
-        masked=expand("masked/to_mask.{region}.fasta.masked",region=splitRegions),
-        t2t=expand("t2t/to_mask.{region}.fasta.masked",region=splitRegions),
-        comb=expand("comb/to_mask.{region}.fasta.masked",region=splitRegions),        
-        mask="assembly.repeat_masked.fasta",
-        maskedGenomeOut="assembly.repeat_masked.fasta.out"        
 
-#   "grid_small": "sbatch -c 1 --mem=8G --time=4:00:00 --partition=qcb  --account=mchaisso_100", 
+
+
+rule all:
+	input:
+		split=expand("split/to_mask.{region}.fasta",region=splitRegions),
+		masked=expand("masked/to_mask.{region}.fasta.masked",region=splitRegions),
+		t2t=expand("t2t/to_mask.{region}.fasta.masked",region=splitRegions),
+		comb=expand("comb/to_mask.{region}.fasta.masked",region=splitRegions),
+		mask=szCompressedMaskedAssembly,
+		maskedGenomeOut=szLocationsOfRepeats
+	shell:"""
+		./cleanUp.py
+"""
 
 
 rule IndexGenome:
@@ -116,13 +126,11 @@ rule MaskContig:
         maskOut="masked/to_mask.{index}.fasta.out"
     conda:
         "rmsk"
-    #          "grid_repeatmasker" : "sbatch -c 4 --mem=8G --time=24:00:00 --partition=qcb --account=mchaisso_100",
     resources:
         mem=8,
         threads=1,
         hrs=24
     params:
-        #grid_opts=config["grid_repeatmasker"],
         repeatLibrary=config["repeat_library"],
         sd=SD        
     shell:"""
@@ -192,13 +200,11 @@ rule TRFMaskContig:
         trf="trf/to_mask.{index}.fasta.trf"
     conda:
         "base"
-	#   "grid_small": "sbatch -c 1 --mem=8G --time=4:00:00 --partition=qcb  --account=mchaisso_100", 
     resources:
         mem = 8,		
         threads = 1,
         hrs = 4
     params:
-#        grid_opts=config["grid_small"],
         sd=SD
     shell:"""
 mkdir -p trf    
@@ -219,13 +225,11 @@ rule MergeMaskerRuns:
     output:
         comb="comb/to_mask.{index}.fasta.masked",
         combOut="comb/to_mask.{index}.fasta.out",
-	#   "grid_small": "sbatch -c 1 --mem=8G --time=4:00:00 --partition=qcb  --account=mchaisso_100", 
     resources:
         mem = 8,		
         threads = 1,
         hrs = 4
     params:
-	#        grid_opts=config["grid_small"],
         sd=SD
     shell:"""
 export LD_LIBRARY_PATH=/home/hsiehph/shared/software/packages/htslib && {params.sd}/comask {output.comb} {input.humLib} {input.t2tLib} {input.trfMasked}
@@ -239,14 +243,12 @@ rule CombineMaskedFasta:
         maskedFasta=lambda wildcards:  expand("comb/to_mask.{{name}}_{coords}.fasta.masked", coords=splitByContig[wildcards.name])
     output:
         combMaskedFasta="comb/masked.{name}.fasta"
-	#   "grid_medium": "sbatch -c 8 --mem=16G --time=24:00:00 --partition=qcb --account=mchaisso_100", 
     resources:
         mem = 16,
         threads = 1,
         hrs = 24
     params:
         sd=SD,
-	#        grid_opts=config["grid_medium"]
     shell:"""
 module load python3/3.9.3_anaconda2021.11_mamba && {params.sd}/CombineFasta.py {output.combMaskedFasta} {wildcards.name} {SplitOverlap} {input.maskedFasta}
 """    
@@ -256,13 +258,10 @@ rule WriteOutNames:
         maskedContigsOut=expand("comb/to_mask.{index}.fasta.out", index=splitRegions),
     output:
         contigOutFOFN="comb/comb.out.fofn",
-	#   "grid_small": "sbatch -c 1 --mem=8G --time=4:00:00 --partition=qcb  --account=mchaisso_100", 
     resources:
         mem = 8,		
         threads = 1,
         hrs = 4
-#    params:
-#        grid_opts=config["grid_small"]
     run:
         outFile=open(output.contigOutFOFN,'w')
         for i in input.maskedContigsOut :
@@ -275,32 +274,37 @@ rule CatMaskedFasta:
     input:
         maskedContigs=expand("comb/masked.{name}.fasta", name=contigNames)
     output:
-        maskedGenome="assembly.repeat_masked.fasta",
-	#   "grid_small": "sbatch -c 1 --mem=8G --time=4:00:00 --partition=qcb  --account=mchaisso_100", 
+        maskedGenome=szMaskedAssembly,
     resources:
         mem = 8,		
         threads = 1,
         hrs = 4
-#    params:
-#        grid_opts=config["grid_small"]
     shell:"""
 cat {input.maskedContigs} > {output.maskedGenome}
 """
-    
-    
+
+rule bgzipRepeatMaskedAssembly:
+	input: szMaskedAssembly
+	output: szCompressedMaskedAssembly
+	resources:
+		mem = 8,		
+		threads = 1,
+		hrs = 4
+	shell: """
+		module load htslib/1.17-19-g07638e1 && bgzip szMaskedAssembly
+"""
+
 rule CombineMask:
     input:
         contigOutFOFN="comb/comb.out.fofn"
     output:
-        maskedGenomeOut="assembly.repeat_masked.fasta.out"        
+        maskedGenomeOut=szLocationsOfRepeats
     resources:
         mem = 8,		
         threads = 1,
         hrs = 4
     params:
-#        grid_opts=config["grid_small"],
         sd=SD
     shell:"""
 {params.sd}/AppendOutFile.py {output.maskedGenomeOut} {params.sd}/repeat_masker.out.header  {input.contigOutFOFN}
 """
-        
