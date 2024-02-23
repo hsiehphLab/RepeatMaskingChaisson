@@ -209,7 +209,7 @@ rule TRFMaskContig:
     shell:"""
 mkdir -p trf    
 /panfs/jay/groups/7/hsiehph/shared/software/packages/trf-mod/from_Mark/TRF-mod/trf-mod -p 500 -l 20000 {input.orig} > {output.trf}.bed
-# fix for /panfs/jay/groups/7/hsiehph/gordo893/pipelines/mark_chaisson_repeatmasker/RepeatMasking/bemask:     error while loading shared libraries: libhts.so.3: cannot open shared object file: No such file or directory
+# fix for /panfs/jay/groups/7/hsiehph/gordo893/pipelines/mark_chaisson_repeatmasker/RepeatMasking/bemask:     errror while loading shared libraries: libhts.so.3: cannot open shared object file: No such file or directory
 # fix for /usr/bin/bash: line 3: LD_LIBRARY_PATH: unbound variable
 # and ./bemask: /lib64/libstdc++.so.6: version `GLIBCXX_3.4.21' not found (required by ./bemask)
 module load gcc/7.2.0 && export LD_LIBRARY_PATH=/panfs/jay/groups/7/hsiehph/gordo893/packages/htslib:$LD_LIBRARY_PATH && {params.sd}/bemask {input.orig} {output.trf}.bed {output.trf}
