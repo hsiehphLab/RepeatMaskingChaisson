@@ -291,7 +291,7 @@ rule bgzipRepeatMaskedAssembly:
 		threads = 1,
 		hrs = 4
 	shell: """
-		module load htslib/1.17-19-g07638e1 && bgzip szMaskedAssembly
+		module load htslib/1.17-19-g07638e1 && bgzip {szMaskedAssembly}
 """
 
 rule CombineMask:
