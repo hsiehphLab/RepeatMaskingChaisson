@@ -8,7 +8,7 @@
 
 
 # needed for Athef because it didn't automatically source ~/.bashrc so couldn't conda activate anything
-source ~/.bashrc
+source /home/hsiehph/shared/bin/initialize_conda.sh
 
 module purge
 
