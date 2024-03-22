@@ -125,7 +125,7 @@ rule MaskContig:
         "rmsk"
     resources:
         mem=8,
-        threads=1,
+        threads=8,
         hrs=24
     params:
         repeatLibrary=config["repeat_library"],
@@ -203,7 +203,7 @@ rule TRFMaskContig:
         "base"
     resources:
         mem = 8,		
-        threads = 1,
+        threads = 8,
         hrs = 4
     params:
         sd=SD
@@ -253,12 +253,27 @@ rule CombineMaskedFasta:
     shell:"""
 module load python3/3.9.3_anaconda2021.11_mamba && {params.sd}/CombineFasta.py {output.combMaskedFasta} {wildcards.name} {SplitOverlap} {input.maskedFasta}
 """    
+
+
+rule FixCoordinates:
+	input: "comb/to_mask.{index}.fasta.out"
+	output: "comb_fixed_coords/to_mask.{index}.fasta.out"
+	resources:
+		mem = 1,
+		threads = 1,
+		hrs = 24
+	shell: """
+./fix_mask_coordinates.py {input} {output}
+"""
+
+
+
         
 rule WriteOutNames:
     input:
-        maskedContigsOut=expand("comb/to_mask.{index}.fasta.out", index=splitRegions),
+        maskedContigsOut=expand("comb_fixed_coords/to_mask.{index}.fasta.out", index=splitRegions),
     output:
-        contigOutFOFN="comb/comb.out.fofn",
+        contigOutFOFN="comb_fixed_coords/comb.out.fofn",
     resources:
         mem = 8,		
         threads = 1,
@@ -297,7 +312,7 @@ rule bgzipRepeatMaskedAssembly:
 
 rule CombineMask:
     input:
-        contigOutFOFN="comb/comb.out.fofn"
+        contigOutFOFN="comb_fixed_coords/comb.out.fofn"
     output:
         maskedGenomeOut=szLocationsOfRepeats
     resources:
@@ -316,5 +331,5 @@ rule cleanUp:
 		threads = 1,
 		hrs = 4
 	shell:"""
-#		./cleanUp.py
+		./cleanUp.py
 """
