@@ -311,10 +311,10 @@ rule CombineMask:
 """
 
 rule cleanUp:
-    resources:
-        mem = 1,		
-        threads = 1,
-        hrs = 4
+	resources:
+		mem = 1,		
+		threads = 1,
+		hrs = 4
 	shell:"""
 #		./cleanUp.py
 """
