@@ -79,9 +79,6 @@ rule all:
 		comb=expand("comb/to_mask.{region}.fasta.masked",region=splitRegions),
 		mask=szCompressedMaskedAssembly,
 		maskedGenomeOut=szLocationsOfRepeats
-	shell:"""
-		./cleanUp.py
-"""
 
 
 rule IndexGenome:
@@ -174,7 +171,11 @@ then
   # 
   # Copy input file to temp dir that should have fast IO
   #
-  export LD_LIBRARY_PATH=/panfs/jay/groups/7/hsiehph/gordo893/packages/htslib && {params.sd}/hardmask {input.mask} $TEMP/to_mask.{wildcards.index}.fasta && \
+
+  # this was not sufficient:  module load gcc/7.2.0 && export LD_LIBRARY_PATH=/panfs/jay/groups/7/hsiehph/gordo893/packages/htslib && /panfs/jay/groups/7/hsiehph/gordo893/pip
+  # it gave:  /panfs/jay/groups/7/hsiehph/gordo893/pipelines/mark_chaisson_repeatmasker/fixing_out_file/hardmask: /lib64/libstdc++.so.6: version `CXXABI_1.3.9' not found (required by /panfs/jay/groups/7/hsiehph/gordo893/pipelines/mark_chaisson_repeatmasker/fixing_out_file/hardmask)
+  # and /panfs/jay/groups/7/hsiehph/gordo893/pipelines/mark_chaisson_repeatmasker/fixing_out_file/hardmask: /lib64/libstdc++.so.6: version `GLIBCXX_3.4.21' not found (required by /panfs/jay/groups/7/hsiehph/gordo893/pipelines/mark_chaisson_repeatmasker/fixing_out_file/hardmask)
+  module load gcc/11.3.0 && {params.sd}/hardmask {input.mask} $TEMP/to_mask.{wildcards.index}.fasta && \
   pushd $TEMP &&  \
   RepeatMasker -nolow -lib {params.sd}/T2TLib/final_consensi_gap_nohsat_teucer.embl.txt.fasta  -pa 8 -s -xsmall \"to_mask.{wildcards.index}.fasta\" && \
   popd && \
@@ -212,7 +213,7 @@ mkdir -p trf
 # fix for /panfs/jay/groups/7/hsiehph/gordo893/pipelines/mark_chaisson_repeatmasker/RepeatMasking/bemask:     errror while loading shared libraries: libhts.so.3: cannot open shared object file: No such file or directory
 # fix for /usr/bin/bash: line 3: LD_LIBRARY_PATH: unbound variable
 # and ./bemask: /lib64/libstdc++.so.6: version `GLIBCXX_3.4.21' not found (required by ./bemask)
-module load gcc/7.2.0 && export LD_LIBRARY_PATH=/panfs/jay/groups/7/hsiehph/gordo893/packages/htslib:$LD_LIBRARY_PATH && {params.sd}/bemask {input.orig} {output.trf}.bed {output.trf}
+module load gcc/11.3.0 && export LD_LIBRARY_PATH=/panfs/jay/groups/7/hsiehph/gordo893/packages/htslib:$LD_LIBRARY_PATH && {params.sd}/bemask {input.orig} {output.trf}.bed {output.trf}
 """
 
 rule MergeMaskerRuns:
@@ -232,7 +233,7 @@ rule MergeMaskerRuns:
     params:
         sd=SD
     shell:"""
-export LD_LIBRARY_PATH=/home/hsiehph/shared/software/packages/htslib && {params.sd}/comask {output.comb} {input.humLib} {input.t2tLib} {input.trfMasked}
+module load gcc/11.3.0 && export LD_LIBRARY_PATH=/home/hsiehph/shared/software/packages/htslib:$LD_LIBRARY_PATH && {params.sd}/comask {output.comb} {input.humLib} {input.t2tLib} {input.trfMasked}
 echo {input.humLibOut} > comb/to_mask.{wildcards.index}.names
 echo {input.t2tLibOut} >> comb/to_mask.{wildcards.index}.names
 {params.sd}/AppendOutFile.py {output.combOut} {params.sd}/repeat_masker.out.header comb/to_mask.{wildcards.index}.names
@@ -307,4 +308,13 @@ rule CombineMask:
         sd=SD
     shell:"""
 {params.sd}/AppendOutFile.py {output.maskedGenomeOut} {params.sd}/repeat_masker.out.header  {input.contigOutFOFN}
+"""
+
+rule cleanUp:
+    resources:
+        mem = 1,		
+        threads = 1,
+        hrs = 4
+	shell:"""
+#		./cleanUp.py
 """
