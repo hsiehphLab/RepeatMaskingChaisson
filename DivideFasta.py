@@ -10,7 +10,11 @@ overlap=int(sys.argv[3])
 base=sys.argv[4]
 
 for seqRec in SeqIO.parse(inFile, "fasta"):
-    seq = str(seqRec.seq)
+    # changed to uppercase, DG May 8, 2024 so doesn't include
+    # previously masked bases but unmasks and then repeatmasks from scratch
+    seq = str(seqRec.seq).upper()
+    # end of change
+
     seqLen = len(seq)
 
     nSeq = int(seqLen/L)
