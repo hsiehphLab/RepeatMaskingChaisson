@@ -11,7 +11,7 @@ assembly=config["input"]
 asmFai=assembly + ".fai"
 
 if not os.path.exists( asmFai ):
-	szCommand = "module load compatibility/mesabi-centos7 && module load samtools/1.16.1-gcc-8.2.0-egljrr3 && samtools faidx " + assembly
+	szCommand = "module load samtools/1.20 && samtools faidx " + assembly
 	print( "about to execute: " + szCommand )
 	subprocess.call( szCommand, shell = True )
 
