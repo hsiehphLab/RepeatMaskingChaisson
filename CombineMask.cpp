@@ -54,7 +54,12 @@ int main(int argc, char* argv[]) {
 		for (int p=0; p < ks[0]->seq.l; p ++) {
 			for (int j=1; j < ks.size(); j++) {
 				if (ks[j]->seq.s[p] >= 'a' && ks[j]->seq.s[p] <= 'z') {
-					ks[0]->seq.s[p] = ks[j]->seq.s[p];
+                   // found and fixed this bug (DG) July 12, 2024
+                   // ks[0]->seq.s[p] = ks[j]->seq.s[p];
+                   // the problem is that if the jth dataset has different
+                   // bases (e.g., n's in it which differ from the 2nd argument
+                   // original unmasked dataset)
+                   ks[0]->seq.s[p] = tolower( ks[0]->seq.s[p] );
 				}
 			}
 		}
