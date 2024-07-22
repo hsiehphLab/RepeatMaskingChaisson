@@ -1,7 +1,6 @@
 {
-   "input" : "assembly.unassigned.fasta",
+   "input" : "/panfs/jay/groups/7/hsiehph/gordo893/samples/multiple_samples/HPRCasm/HG005/hap1/misc/HG005.h1.fa.masked",
    "comment1" : "next line contains output without .gz",
-   "output" : "PNG15b.unassigned.rm.fa",
    "repeat_library": "-species 'Homo sapiens'",
    "t2t_repeat_library" : "T2TLib/final_consensi_gap_nohsat_teucer.embl.txt.fasta"
 }
