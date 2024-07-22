@@ -9,6 +9,7 @@ configfile: "repeatmask.json"
 
 assembly=config["input"]
 asmFai=assembly + ".fai"
+unmasked=assembly + ".unmasked"
 
 if not os.path.exists( asmFai ):
 	szCommand = "module load samtools/1.20 && samtools faidx " + assembly
@@ -16,12 +17,22 @@ if not os.path.exists( asmFai ):
 	subprocess.call( szCommand, shell = True )
 
 
+szSedCommand = "sed '/^>/! s/\\(.*\)/\\U\\1/' "
+print( f"szSedCommand is {szSedCommand}")
+
 asmFaiFile=open(asmFai)
 faiLines=asmFaiFile.readlines()
 
-szMaskedAssembly=config["output"]
+# the reason the "basename" is needed is that otherwise, if config["input"] is a
+# full path to somewhere else in the filesystem, the output files will be put there
+# instead of in the current directory
+
+szMaskedAssembly=os.path.basename( config["input"] ) + ".rm"
 szCompressedMaskedAssembly = szMaskedAssembly + ".gz"
-szLocationsOfRepeats=config["output"] + ".out"
+szLocationsOfRepeats= szMaskedAssembly + ".out"
+
+szMaskedAssemblyWithoutWindowmasker="masked_assembly_without_windowmasker.fa"
+
 
 contigs=[l.split()[0] for l in faiLines]
 lengths=[int(l.split()[1]) for l in faiLines]
@@ -94,6 +105,22 @@ rule IndexGenome:
 module load compatibility/mesabi-centos7 && module load samtools/1.16.1-gcc-8.2.0-egljrr3 && samtools faidx {input.asm}
 """
 
+rule unmask_assembly:
+    input:
+        asm=assembly,
+        fai=asmFai
+    output:
+        asm=unmasked
+    localrule: True
+    run:
+        szCommand = "cat " + str( input.assembly ) + " | " + szSedCommand + " >" + str( output.asm )
+        print( f"about to execute: {szCommand}" )
+        shell( szCommand )
+
+
+#cat {input.assembly} | sed '/^>/!  s/\(.*\)/\U\1/'	>{output.asm}
+#"""
+
 rule SplitGenome:
     input:
         asm=assembly,
@@ -101,15 +128,16 @@ rule SplitGenome:
     output:
         split=expand("split/to_mask.{region}.fasta", region=splitRegions)
 #    "grid_medium": "sbatch -c 8 --mem=16G --time=24:00:00 --partition=qcb --account=mchaisso_100", 
-    resources:
-        mem=16,
-        threads=1,
-        hrs=24
+    localrule: True
+    # resources:
+    #     mem=16,
+    #     threads=1,
+    #     hrs=24
     params:
 		#        grid_opts=config["grid_medium"],
         sd=SD
-    resources:
-        load=1
+    # resources:
+    #     load=1
     shell:"""
 mkdir -p split
 module load python3/3.9.3_anaconda2021.11_mamba && {params.sd}/DivideFasta.py {input.asm} {SplitSize} {SplitOverlap} split/to_mask
@@ -193,7 +221,29 @@ else
   cp {input.mask} t2t/to_mask.\"{wildcards.index}\".fasta.masked >> t2t/to_mask.\"{wildcards.index}\".fasta.out || true
 fi
 """
+szWindowmaskerCountsFile = "windowmasker/entire_assembly.counts"
+
+rule run_windowmasker:
+    input:
+        asm=assembly,
+    output:
+        "windowmasker/wm.fa"
+    conda:
+        "base"
+    resources:
+        mem = 20,		
+        threads = 1,
+        hrs = 4
+    params:
+        sd=SD
+    # put counts in windowmasker/{wildcards.index}.counts
+    shell:"""
+mkdir -p windowmasker
+module load ncbi_toolkit/25.2.0 && windowmasker -mem 20000 -mk_counts -in {input.asm} -out {szWindowmaskerCountsFile} && windowmasker -ustat {szWindowmaskerCountsFile} -dust false -in {input.asm} -out {output} -outfmt fasta
+"""
+
     
+
 rule TRFMaskContig:
     input:
         orig="split/to_mask.{index}.fasta",
@@ -216,13 +266,14 @@ mkdir -p trf
 module load gcc/7.2.0 && export LD_LIBRARY_PATH=/home/hsiehph/shared/software/packages/htslib/install/lib:$LD_LIBRARY_PATH && {params.sd}/bemask {input.orig} {output.trf}.bed {output.trf}
 """
 
+
 rule MergeMaskerRuns:
     input:
         humLib="masked/to_mask.{index}.fasta.masked",
         humLibOut="masked/to_mask.{index}.fasta.out",
         t2tLib="t2t/to_mask.{index}.fasta.masked",
         t2tLibOut="t2t/to_mask.{index}.fasta.out",        
-        trfMasked="trf/to_mask.{index}.fasta.trf"
+        trfMasked="trf/to_mask.{index}.fasta.trf",
     output:
         comb="comb/to_mask.{index}.fasta.masked",
         combOut="comb/to_mask.{index}.fasta.out",
@@ -290,14 +341,33 @@ rule CatMaskedFasta:
     input:
         maskedContigs=expand("comb/masked.{name}.fasta", name=contigNames)
     output:
-        maskedGenome=szMaskedAssembly,
+        maskedGenomeWithoutWindowmasker=szMaskedAssemblyWithoutWindowmasker,
     resources:
         mem = 8,		
         threads = 1,
         hrs = 4
     shell:"""
-cat {input.maskedContigs} > {output.maskedGenome}
+cat {input.maskedContigs} > {output.maskedGenomeWithoutWindowmasker}
 """
+
+rule combineWithWindowmasker:
+     input:
+        maskedGenomeWithoutWindowmasker=szMaskedAssemblyWithoutWindowmasker,
+        windowmasker="windowmasker/wm.fa"
+     output:
+        szMaskedAssembly
+     params:
+        sd=SD
+     resources:
+        mem = 8,		
+        threads = 1,
+        hrs = 4
+     shell:"""
+module load gcc/7.2.0 && export LD_LIBRARY_PATH=/home/hsiehph/shared/software/packages/htslib/install/lib:$LD_LIBRARY_PATH && {params.sd}/comask {output} {input.maskedGenomeWithoutWindowmasker} {input.windowmasker}
+"""
+
+
+
 
 rule bgzipRepeatMaskedAssembly:
 	input: szMaskedAssembly
@@ -307,7 +377,7 @@ rule bgzipRepeatMaskedAssembly:
 		threads = 1,
 		hrs = 4
 	shell: """
-		module load htslib/1.17-19-g07638e1 && bgzip {szMaskedAssembly}
+		module load htslib/1.17-19-g07638e1 && bgzip -c {szMaskedAssembly} >{szCompressedMaskedAssembly}
 """
 
 rule CombineMask:
