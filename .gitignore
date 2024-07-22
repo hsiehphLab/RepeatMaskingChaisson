@@ -8,3 +8,10 @@ nl
 split/
 t2t/
 trf/
+comb/
+comb_fixed_coords/
+logs/
+sacct.log
+slurm-*.out
+windowmasker/
+
