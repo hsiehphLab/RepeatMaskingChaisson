@@ -140,7 +140,7 @@ rule SplitGenome:
     #     load=1
     shell:"""
 mkdir -p split
-module load python3/3.9.3_anaconda2021.11_mamba && {params.sd}/DivideFasta.py {input.asm} {SplitSize} {SplitOverlap} split/to_mask
+module purge && source initialize_conda.sh && conda activate biopython && {params.sd}/DivideFasta.py {input.asm} {SplitSize} {SplitOverlap} split/to_mask
 """
 
 rule MaskContig:
