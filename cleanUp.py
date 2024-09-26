@@ -6,7 +6,7 @@ import shutil
 nFilesToKeepInDirectories = 5
 
 
-aDirectoriesToMainlyEmpty = ["masked", "comb", "split", "t2t", "trf" ]
+aDirectoriesToMainlyEmpty = ["masked", "comb", "split", "t2t", "trf", "comb_fixed_coords" ]
 
 
 for szDirectory in aDirectoriesToMainlyEmpty:
@@ -56,3 +56,8 @@ if ( os.path.isdir( szDirectory )):
 else:
     print( szDirectory + " is already deleted" )
 
+szFileToDelete = "masked_assembly_without_windowmasker.fa"    
+if os.path.exists( szFileToDelete ):
+    os.remove( szFileToDelete )    
+
+shutil.rmtree( "windowmasker", ignore_errors = True )
