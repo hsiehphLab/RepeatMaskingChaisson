@@ -302,7 +302,9 @@ rule CombineMaskedFasta:
     params:
         sd=SD,
     shell:"""
-module load python3/3.9.3_anaconda2021.11_mamba && {params.sd}/CombineFasta.py {output.combMaskedFasta} {wildcards.name} {SplitOverlap} {input.maskedFasta}
+#failed because this python no longer contains biopython
+#module load python3/3.9.3_anaconda2021.11_mamba && {params.sd}/CombineFasta.py {output.combMaskedFasta} {wildcards.name} {SplitOverlap} {input.maskedFasta}
+module purge && source initialize_conda.sh && conda activate biopython && {params.sd}/CombineFasta.py {output.combMaskedFasta} {wildcards.name} {SplitOverlap} {input.maskedFasta}
 """    
 
 
