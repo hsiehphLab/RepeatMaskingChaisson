@@ -1,6 +1,5 @@
 {
    "input" : "I usually use a local path and copy file here.  Not compressed",
-   "comment1" : "next line contains output without .gz",
    "repeat_library": "-species 'Homo sapiens'",
    "t2t_repeat_library" : "T2TLib/final_consensi_gap_nohsat_teucer.embl.txt.fasta"
 }
