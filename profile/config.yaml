@@ -11,7 +11,7 @@ cluster:
     --nodes=1
     --ntasks-per-node=1
     --cpus-per-task={resources.threads}
-    --mem={resources.mem}g
+    --mem={resources.mem_mb}M
     --tmp={resources.disk}g
     --time={resources.hrs}:00:00
     --job-name=smk-{rule}-{wildcards}
