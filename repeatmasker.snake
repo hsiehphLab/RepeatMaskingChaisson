@@ -36,7 +36,7 @@ faiLines=asmFaiFile.readlines()
 # full path to somewhere else in the filesystem, the output files will be put there
 # instead of in the current directory
 
-szMaskedAssembly=os.path.basename( config["input"] ) + ".rm"
+szMaskedAssembly=os.path.basename( assembly ) + ".rm"
 szCompressedMaskedAssembly = szMaskedAssembly + ".gz"
 szLocationsOfRepeats= szMaskedAssembly + ".out"
 
