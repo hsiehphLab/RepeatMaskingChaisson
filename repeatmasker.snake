@@ -394,7 +394,7 @@ rule bgzipRepeatMaskedAssembly:
 		threads = 1,
 		hrs = 4
 	shell: """
-		module load htslib/1.17-19-g07638e1 && bgzip -c {szMaskedAssembly} >{szCompressedMaskedAssembly}
+		module load htslib/1.17-19-g07638e1 && bgzip -c {szMaskedAssembly} >{szCompressedMaskedAssembly} && rm {szMaskedAssembly}
 """
 
 rule CombineMask:
@@ -419,6 +419,7 @@ rule cleanUp:
 		mem = 1,		
 		threads = 1,
 		hrs = 4
-	shell:"""
-		./cleanUp.py
-"""
+	run:
+		if ( assembly_raw.endswith( ".gz" ) ):
+			shell( "rm {assembly}" )
+		shell( "./cleanUp.py" )
