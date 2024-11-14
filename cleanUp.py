@@ -26,7 +26,7 @@ for szDirectory in aDirectoriesToMainlyEmpty:
                 else:
                     print( "will keep: " + entry.name )
 
-    print( f"files deleted: {nFilesDeleted}" )
+    print( f"files deleted: {nFilesDeleted} out of {nFilesSoFar} examined" )
 
 
 # delete logs.  This saves each subdirectory of logs and saves 5 logs
