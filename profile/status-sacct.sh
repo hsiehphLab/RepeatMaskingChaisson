@@ -14,7 +14,7 @@ fi
 output=`sacct -j "$jobid" --allclusters --format State --noheader | head -n 1 | awk '{print $1}'`
 
 # this script appears to be run in the top level fastcn directory--not in profile
-echo $jobid $output >>sacct.log
+echo `date +%Y.%m.%d.%H.%M.%S` $jobid $output >>sacct.log
 
 
 # $output == "" added DG since I've seen cases in which the job is
@@ -26,7 +26,7 @@ echo $jobid $output >>sacct.log
 if [[ $output =~ ^(COMPLETED).* ]]
 then
   echo success
-elif [[ $output =~ ^(RUNNING|PENDING|COMPLETING|CONFIGURING|SUSPENDED).* ]]
+elif [[ $output =~ ^(RUNNING|PENDING|COMPLETING|CONFIGURING|SUSPENDED|REQUEUED).* ]]
 then
   echo running
 elif [ "$output" = "" ]
