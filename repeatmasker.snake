@@ -165,7 +165,7 @@ rule MaskContig:
         mask="masked/to_mask.{index}.fasta.masked",
         maskOut="masked/to_mask.{index}.fasta.out"
     conda:
-        "rmsk"
+        "rmsk2"
     resources:
         mem=1,
         threads=1,
@@ -197,7 +197,7 @@ rule SpecialMaskContig:
         tt="t2t/to_mask.{index}.fasta.masked",
         ttOut="t2t/to_mask.{index}.fasta.out",
     conda:
-        "rmsk"
+        "rmsk2"
     resources:
         mem = 1,		
         threads = 1,
