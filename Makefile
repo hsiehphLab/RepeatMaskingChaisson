@@ -5,7 +5,7 @@ hardmask: HardMask.cpp
 	g++ -O2 $< -o $@ -I /projects/standard/hsiehph/shared/software/packages/htslib/install/include -I $(CONDA_PREFIX)/include -L/projects/standard/hsiehph/shared/software/packages/htslib/install/lib -L$(CONDA_PREFIX)/lib -lhts -Wl,-rpath,$(CONDA_PREFIX)/lib
 
 comask: CombineMask.cpp
-	g++ -O2  $< -o $@  -I /projects/standard/hsiehph/shared/software/packages/htslib/install/include -I $(CONDA_PREFIX)/include -L/projects/standard/hsiehph/shared/software/packages/htslib/install/lib -L$(CONDA_PREFIX)/lib -lhts -Wl,-rpath,$(CONDA_PREFIX)/lib  -lhts -lz -lpthread
+	g++ -O2  $< -o $@  -I /projects/standard/hsiehph/shared/software/packages/htslib/install/include -L/projects/standard/hsiehph/shared/software/packages/htslib/install/lib -lhts  -Wl,-rpath,/projects/standard/hsiehph/shared/software/packages/htslib/install/lib  -lhts -lz -lpthread
 
 bemask: MaskBed.cpp
 	g++ -O2  $< -o $@  -I /projects/standard/hsiehph/shared/software/packages/htslib/install/include -L/projects/standard/hsiehph/shared/software/packages/htslib/install/lib -lhts  -Wl,-rpath,/projects/standard/hsiehph/shared/software/packages/htslib/install/lib  -lhts -lz -lpthread
