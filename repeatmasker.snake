@@ -267,9 +267,9 @@ rule TRFMaskContig:
     conda:
         "base"
     resources:
-        mem = 1,		
+        mem = 24, # 1 was not enough DG 2025.06.06
         threads = 1,
-        hrs = 1
+        hrs = 48  # 24 was not enough DG 2025.06.06
     params:
         sd=SD
     shell:"""
@@ -319,7 +319,7 @@ rule CombineMaskedFasta:
     shell:"""
 #failed because this python no longer contains biopython
 #module load python3/3.9.3_anaconda2021.11_mamba && {params.sd}/CombineFasta.py {output.combMaskedFasta} {wildcards.name} {SplitOverlap} {input.maskedFasta}
-module purge && source initialize_conda.sh && conda activate biopython && {params.sd}/CombineFasta.py {output.combMaskedFasta} {wildcards.name} {SplitOverlap} {input.maskedFasta}
+module purge && source /projects/standard/hsiehph/shared/bin/initialize_conda.sh && conda activate biopython && {params.sd}/CombineFasta.py {output.combMaskedFasta} {wildcards.name} {SplitOverlap} {input.maskedFasta}
 """    
 
 
