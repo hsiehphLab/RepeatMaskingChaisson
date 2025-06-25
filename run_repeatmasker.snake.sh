@@ -15,7 +15,7 @@ module purge
 conda activate snakemake
 
 
-snakemake -s repeatmasker.snake --jobname "{rulename}.{jobid}" --profile profile  -j 100 -k --rerun-incomplete --restart-times 1 --use-conda \
+snakemake -s repeatmasker.snake --jobname "{rulename}.{jobid}" --profile profile  -j 100 -k --rerun-incomplete --restart-times 1 --use-conda --nolock \
           --groups MaskContig=MaskContiggroup \
           SpecialMaskContig=SpecialMaskContiggroup \
           TRFMaskContig=TRFMaskContiggroup \
